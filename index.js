@@ -79,7 +79,7 @@ async function scrapeGatry() {
       if (sales[0].comment) {
         const commentsLink = sales[0].commentsLink;
         const user = sales[0].user;
-        const comment = getComment(commentsLink, user);
+        const comment = await getComment(commentsLink, user);
         sales[0].comment = comment;
       }
 
@@ -95,7 +95,7 @@ async function scrapeGatry() {
       if (sale.comment) {
         const commentsLink = sale.commentsLink;
         const user = sale.user;
-        const comment = getComment(commentsLink, user);
+        const comment = await getComment(commentsLink, user);
         sale.comment = comment;
       }
       await sendToTelegram(sale);
@@ -108,18 +108,22 @@ async function scrapeGatry() {
 const getComment = async (commentsLink, user) => {
   const response = await axios.get(commentsLink);
   const $ = cheerio.load(response.data);
-  const comments = $('.comment');
-  const commentUser = comments[0].find('.comment-header a')[0].attr('href');
-
-  if (commentUser === user) {
-    return comments[0].find('.comment-content p').text();
-  } else {
-    return undefined;
-  }
+  let comment;
+  $('.comment-header').each((index, commentHeader) => {
+    if (index === 0) {
+      const commentUser = $(commentHeader).find('a').attr('href');
+      if (commentUser === user) {
+        comment = $('.comment-content p').text();
+        console.log('Comment:', comment);
+      }
+    }
+  });
+  
+  return comment || undefined;
 }
 
-// Run the scraping function every 1 minute
-setInterval(scrapeGatry, 60000);
+// Run the scraping function every 2 minutes
+setInterval(scrapeGatry, 120000);
 
 // Run it once immediately
 scrapeGatry();
